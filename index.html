@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A raw MRS quality-control and cross-model response analysis inspired by the Viswanath Lab, prepared by Cathy Liu.">
+  <title>Exploratory Analyses Inspired by the Viswanath Lab</title>
+  <link rel="stylesheet" href="styles.css?v=20260814-1">
+</head>
+<body>
+  <main class="page">
+    <h1>Exploratory Analyses Inspired by the Viswanath Lab</h1>
+    <div class="byline">
+      Cathy Liu · Cancer metabolism and preclinical imaging · <a href="mailto:cathyliu014@gmail.com">cathyliu014@gmail.com</a><br>
+      Prepared for the Viswanath Lab, UC San Francisco<br>
+      Personal exploratory project, August 2026
+    </div>
+
+    <nav class="section-nav" aria-label="Demo sections">
+      <a href="#motivation">Motivation</a>
+      <a href="#a1">Raw scan review</a>
+      <a href="#a2">Response gate</a>
+      <a href="#relevance">Relevance</a>
+    </nav>
+
+    <p class="opening">The Viswanath Lab connects glioma metabolism to two linked outputs: therapies that exploit a metabolic dependency, and imaging biomarkers that show whether a drug reached the brain and changed tumor biology. That bridge runs from patient-derived cells and isotope tracing to orthotopic models, longitudinal imaging, pharmacokinetics, and survival.</p>
+    <p class="opening">I built a small review tool over 77 raw <sup>1</sup>H-MRS acquisitions from a UCSF mutant-IDH inhibitor study, then connected the scan-level evidence to the paper's cross-model 2-HG, glutamate, and GLX response tables. It asks two practical questions: which spectra are ready for fitting, and which biological signal is robust enough to advance into the next cell/organoid and in vivo validation study?</p>
+
+    <hr id="motivation">
+    <section aria-labelledby="how-heading">
+      <h2 id="how-heading">How it works</h2>
+      <p>The Dryad deposit contains 308 files organized as 77 Varian PRESS acquisitions: one FID, acquisition log, parameter file, and text record per scan. I parsed the raw complex signal, verified protocol and completion fields, generated a review-only magnitude spectrum, and estimated relative drift by cross-correlating each spectrum to the cohort median. The acquisition comments expose treatment labels and study days, but not a documented model identity for every file, so this explorer does not invent that mapping.</p>
+      <p>The second analysis uses the reported early concentration means from three tumor models. It recalculates percent change versus the matched control and applies one transparent gate: 2-HG must fall while Glu and GLX rise by at least the selected threshold. Changing that threshold changes the advance/hold recommendation and the proposed next experiment.</p>
+    </section>
+
+    <hr id="a1">
+    <section aria-labelledby="analysis-one-heading">
+      <h2 id="analysis-one-heading">Analysis 1 - Review raw MRS acquisitions before fitting</h2>
+      <div class="experiment">
+        <div class="exp-label">Raw data analysis</div>
+        <div class="exp-title">Varian PRESS FIDs · 77 scan-level units</div>
+        <p>Filter by recorded treatment, choose how conservative the QC gate should be, and open any scan. The list puts manual-review candidates first; the spectrum is normalized for shape inspection and is not a metabolite quantification.</p>
+      </div>
+
+      <div class="panel">
+        <form class="review-controls" id="scan-form">
+          <label>Treatment
+            <select id="treatment-filter">
+              <option value="All">All labels</option>
+              <option value="Control">Control</option>
+              <option value="AG-881">AG-881</option>
+              <option value="BAY-1436032">BAY-1436032</option>
+              <option value="Unlabeled">Unlabeled</option>
+            </select>
+          </label>
+          <label>QC gate
+            <select id="qc-filter">
+              <option value="standard">Standard review</option>
+              <option value="lenient">Broad review</option>
+              <option value="strict">Strict review</option>
+            </select>
+          </label>
+          <label>Open scan
+            <select id="scan-select" aria-label="Select a raw MRS scan"></select>
+          </label>
+        </form>
+
+        <div class="review-summary" id="review-summary" aria-live="polite"></div>
+        <div class="scan-queue" id="scan-queue" aria-label="Prioritized scan review list"></div>
+        <svg id="spectrum-viz" class="viz spectrum" viewBox="0 0 600 300" role="img" aria-label="Normalized raw MRS magnitude spectrum"></svg>
+        <div class="readout" id="scan-readout" aria-live="polite"></div>
+        <figcaption>Source: <a href="https://datadryad.org/dataset/doi%3A10.7272%2FQ6B856C7">Dryad 10.7272/Q6B856C7</a>. Processing: 3 Hz exponential window, zero-filled magnitude FFT, and median-spectrum alignment. SNR, drift, and shape correlation are descriptive review aids, not validated fitting criteria.</figcaption>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric"><span class="metric-val" id="metric-scans">77</span><span class="metric-desc">raw acquisitions parsed</span></div>
+        <div class="metric"><span class="metric-val" id="metric-complete">77</span><span class="metric-desc">logs marked complete</span></div>
+        <div class="metric"><span class="metric-val" id="metric-eligible">0</span><span class="metric-desc">pass the active QC gate</span></div>
+      </div>
+    </section>
+
+    <hr id="a2">
+    <section aria-labelledby="analysis-two-heading">
+      <h2 id="analysis-two-heading">Analysis 2 - Stress-test an early response signature</h2>
+      <div class="experiment">
+        <div class="exp-label">Cross-model evidence gate</div>
+        <div class="exp-title">2-HG down · Glu up · GLX up</div>
+        <p>Select an inhibitor and the minimum effect required for every marker. A model advances only when all three directional changes clear the same threshold before MRI-detectable tumor-volume separation.</p>
+      </div>
+
+      <div class="panel">
+        <div class="response-controls">
+          <label>Inhibitor
+            <select id="inhibitor-select">
+              <option value="BAY-1436032">BAY-1436032</option>
+              <option value="AG-881">AG-881</option>
+            </select>
+          </label>
+          <label class="threshold-control">Minimum absolute change
+            <span><output id="threshold-output">15%</output></span>
+            <input id="effect-threshold" type="range" min="5" max="25" step="1" value="15">
+          </label>
+        </div>
+        <div class="response-table-wrap">
+          <table class="response-table">
+            <thead><tr><th>Model</th><th>2-HG</th><th>Glu</th><th>GLX</th><th>Gate</th></tr></thead>
+            <tbody id="response-body"></tbody>
+          </table>
+        </div>
+        <div class="readout" id="response-readout" aria-live="polite"></div>
+        <div class="next-experiment" id="next-experiment"></div>
+        <figcaption>Means and group sizes are from Tables 1-3 of <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7917625/">Radoul et al., 2021</a>. Percent changes here are independently recalculated from those reported means; they are not individual-animal reanalysis.</figcaption>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric"><span class="metric-val">3</span><span class="metric-desc">glioma model systems</span></div>
+        <div class="metric"><span class="metric-val" id="metric-treated-n">15</span><span class="metric-desc">reported treated animals</span></div>
+        <div class="metric"><span class="metric-val" id="metric-pass-models">0/3</span><span class="metric-desc">clear the active signature gate</span></div>
+      </div>
+      <p>The paper reports the same qualitative signature across both inhibitors, but the threshold view shows where that claim is most and least robust. It makes the weakest model-marker pair explicit instead of hiding it inside an across-study summary.</p>
+    </section>
+
+    <hr id="relevance">
+    <section aria-labelledby="relevance-heading">
+      <h2 id="relevance-heading">Why this matters for the lab</h2>
+      <p>The applied Specialist role spans the exact handoff this demo makes: drug-response and mechanistic assays in patient-derived glioma systems, isotope tracing of metabolic adaptation, orthotopic dosing and longitudinal imaging, and PK/brain-penetration assessment. A raw-scan review queue helps protect the imaging endpoint; a threshold-sensitive response gate helps decide what still needs to be resolved before a combination or biomarker is treated as cross-model.</p>
+
+      <h2>What I would bring</h2>
+      <p>I have worked with mouse glioblastoma models, IVIS imaging, tissue collection, pharmacokinetic and safety analyses, mammalian cell culture, qPCR, flow cytometry, and computational biology. Here I used those two sides together: code to audit the public imaging data, and experimental reasoning to connect an early metabolic signal to the controls and readouts needed for cell/organoid, isotope-tracing, orthotopic, IVIS, PK, and survival validation.</p>
+
+      <h2>Methods note</h2>
+      <p class="methods-note">The raw-data analysis uses the CC BY 4.0 <a href="https://datadryad.org/dataset/doi%3A10.7272%2FQ6B856C7">Dryad deposit</a> for <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7917625/">Radoul et al.</a>. All 77 acquisitions contain 10,000 complex points, 512 averages, TE 20 ms, and TR 4 s, and all logs end in “Acquisition complete.” The spectrum is shown on a relative frequency axis; no peak is labeled as a metabolite and no concentration is inferred from it. The paper's reported biological group sizes were U87IDHmut control/AG-881/BAY n = 4/4/5, BT257 n = 10/6/5, and SF10417 n = 6/6/5. The public file comments do not document a scan-to-model map, so scan-level labels are limited to treatment and day. No verified Viswanath Lab or PI-owned GitHub repository was found after checking official pages, publication statements, web GitHub results, and repository search; the 2025 Cell Reports paper also states that it reports no original code. This is an exploratory QC and decision aid, not evidence that any new treatment result has been experimentally validated.</p>
+    </section>
+
+    <footer>
+      Cathy Liu · <a href="mailto:cathyliu014@gmail.com">cathyliu014@gmail.com</a> · <a href="tel:+14152163799">415-216-3799</a><br>
+      Epilepsy neurostimulation project, <a href="https://arxiv.org/abs/2606.04339">arXiv:2606.04339</a>
+    </footer>
+  </main>
+
+  <script src="data.js?v=20260814-1"></script>
+  <script src="app.js?v=20260814-1"></script>
+</body>
+</html>
